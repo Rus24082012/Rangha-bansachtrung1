@@ -1,0 +1,234 @@
+// Trang web bán sách Trung - RÁNG HÀ
+// Tech: React + Tailwind CSS + Firebase + Font Srisakdi
+
+import React, { useState, useEffect } from "react";
+import "@fontsource/srisakdi";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  useNavigate,
+  useLocation
+} from "react-router-dom";
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged
+} from "firebase/auth";
+
+const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "your-app.firebaseapp.com",
+  projectId: "your-app",
+  storageBucket: "your-app.appspot.com",
+  messagingSenderId: "xxxxxxx",
+  appId: "1:xxxx:web:xxxx"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+const allowedAdmins = [
+  "Can2482012@gmail.com",
+  "miraair6@gmail.com",
+  "nguyenthao842012@gmail.com"
+];
+
+const allTags = {
+  "Ngôn Tình": [
+    "cổ trang", "hiện đại", "học đường", "huyền huyễn", "kinh dị", "linh dị",
+    "ngọt", "ngược", "thanh thủy văn", "trinh thám", "tu tiên", "vô hạn lưu", "H văn"
+  ],
+  "Đam Mỹ": [
+    "cổ trang", "hiện đại", "học đường", "huyền huyễn", "kinh dị", "linh dị",
+    "ngọt", "ngược", "thanh thủy văn", "trinh thám", "tu tiên", "vô hạn lưu", "H văn"
+  ]
+};
+
+const mockProducts = [
+  {
+    id: 1,
+    name: "Yêu Em Từ Cái Nhìn Đầu Tiên",
+    desc: "Một câu chuyện tình ngọt ngào từ thế giới game đến đời thực.",
+    price: 120000,
+    tags: ["ngôn tình", "hiện đại", "ngọt"],
+    image: "https://via.placeholder.com/300x400.png?text=Yeu+Em"
+  },
+  {
+    id: 2,
+    name: "Trấn Hồn",
+    desc: "Hành trình của hai người đàn ông khám phá bí ẩn tâm linh và quá khứ.",
+    price: 145000,
+    tags: ["đam mỹ", "linh dị", "huyền huyễn"],
+    image: "https://via.placeholder.com/300x400.png?text=Tran+Hon"
+  },
+  {
+    id: 3,
+    name: "Ma Đạo Tổ Sư",
+    desc: "Câu chuyện xoay quanh Ngụy Vô Tiện và Lam Vong Cơ trong thế giới tu tiên kỳ ảo.",
+    price: 175000,
+    tags: ["đam mỹ", "tu tiên", "cổ trang", "huyền huyễn"],
+    image: "https://via.placeholder.com/300x400.png?text=Ma+Dao+To+Su"
+  }
+];
+
+const Header = ({ cartCount }) => {
+  const [query, setQuery] = useState("");
+  const navigate = useNavigate();
+  return (
+    <header className="bg-[#708238] py-4 px-6 flex justify-between items-center font-srisakdi">
+      <Link to="/" className="text-3xl font-bold text-white hover:underline">
+        RÁNG HÀ
+      </Link>
+      <div className="flex gap-4 items-center">
+        <input
+          type="text"
+          placeholder="Tìm sách..."
+          className="border px-2 rounded"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        <button
+          onClick={() => navigate("/?q=" + query)}
+          className="bg-white text-[#708238] font-semibold px-4 py-1 rounded"
+        >
+          Tìm
+        </button>
+        <Link to="/dang-nhap" className="text-white font-semibold">Đăng nhập</Link>
+        <Link to="/don-hang" className="text-white">
+          🛒 ({cartCount})
+        </Link>
+      </div>
+    </header>
+  );
+};
+
+const HomePage = () => {
+  const location = useLocation();
+  const query = new URLSearchParams(location.search).get("q")?.toLowerCase() || "";
+  const tag = new URLSearchParams(location.search).get("tag")?.toLowerCase() || "";
+  const [showTags, setShowTags] = useState(false);
+
+  const filtered = mockProducts.filter((p) => {
+    const matchesName = p.name.toLowerCase().includes(query);
+    const matchesTag = tag ? (p.tags && p.tags.map(t => t.toLowerCase()).includes(tag)) : true;
+    return matchesName && matchesTag;
+  });
+
+  const navigate = useNavigate();
+
+  return (
+    <div
+      className="p-6 font-srisakdi min-h-screen bg-cover bg-center flex"
+      style={{ backgroundImage: "url('https://via.placeholder.com/1920x1080.png?text=BG')" }}
+    >
+      <aside className="w-64 mr-4 bg-white bg-opacity-90 p-4 rounded-xl hidden md:block">
+        <button
+          className="font-bold text-lg text-[#708238] mb-2"
+          onClick={() => setShowTags(!showTags)}
+        >
+          Thể loại
+        </button>
+        {showTags && (
+          <div className="space-y-2 text-sm">
+            {Object.entries(allTags).map(([group, subTags]) => (
+              <div key={group}>
+                <h3 className="font-semibold mt-2">{group}</h3>
+                <ul className="ml-4 list-disc">
+                  {subTags.sort().map((tag) => (
+                    <li
+                      key={tag}
+                      className="cursor-pointer text-[#4a5a32] hover:underline"
+                      onClick={() => navigate(`/?tag=${encodeURIComponent(tag)}`)}
+                    >
+                      {tag}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </aside>
+      <main className="grid md:grid-cols-3 gap-4 bg-white bg-opacity-80 p-4 rounded-xl w-full">
+        {filtered.length === 0 ? (
+          <p className="col-span-3 text-center text-[#708238] font-bold">
+            Không tìm thấy sản phẩm phù hợp
+          </p>
+        ) : (
+          filtered.map((p) => (
+            <div key={p.id} className="border p-4 rounded-xl shadow-md bg-white">
+              <img src={p.image} alt={p.name} className="w-full h-48 object-cover rounded" />
+              <h2 className="text-xl font-semibold mt-2 text-black">{p.name}</h2>
+              <p className="text-gray-700">{p.desc}</p>
+              <p className="text-[#708238] font-bold">{p.price.toLocaleString()}₫</p>
+            </div>
+          ))
+        )}
+      </main>
+    </div>
+  );
+};
+
+const LoginPage = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate("/");
+    } catch (err) {
+      setError("Đăng nhập thất bại. Vui lòng kiểm tra thông tin.");
+    }
+  };
+
+  return (
+    <div className="p-8 font-srisakdi max-w-md mx-auto mt-10 bg-white shadow rounded">
+      <h2 className="text-2xl font-bold text-[#708238] mb-4">Đăng nhập</h2>
+      <form onSubmit={handleLogin} className="space-y-4">
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full border px-3 py-2 rounded"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <input
+          type="password"
+          placeholder="Mật khẩu"
+          className="w-full border px-3 py-2 rounded"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <button
+          type="submit"
+          className="w-full bg-[#708238] text-white py-2 rounded font-bold"
+        >
+          Đăng nhập
+        </button>
+      </form>
+    </div>
+  );
+};
+
+const App = () => {
+  const [cartCount, setCartCount] = useState(0);
+  return (
+    <Router>
+      <Header cartCount={cartCount} />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/dang-nhap" element={<LoginPage />} />
+      </Routes>
+    </Router>
+  );
+};
+
+export default App;
